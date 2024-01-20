@@ -10,9 +10,11 @@ const app = new Application();
 const HOST = Deno.env.get("HOST") || "http://localhost";
 const PORT = Number(Deno.env.get("PORT")) || 4000;
 
-app.use(APIV1Router.routes());
-app.use(AuthRouter.routes());
-app.use(notFound);
+if(!Deno.env.get("DONTCRASHPLEASE")) {
+    app.use(APIV1Router.routes());
+    app.use(AuthRouter.routes());
+    app.use(notFound);
+}
 
 console.log(`Server is started at ${HOST}:${PORT}`);
 await app.listen({ port: PORT });
