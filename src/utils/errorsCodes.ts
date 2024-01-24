@@ -1,6 +1,8 @@
 enum UserAPIErrors {
     noUserID = 10001,
     userDontExists = 10002,
+    invalidJsonUserUpdate = 10003,
+    errorToUpdateUser = 10004,
 }
 
 enum AuthAPIErrors {

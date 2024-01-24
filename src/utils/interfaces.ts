@@ -35,8 +35,30 @@ export interface UsersDatabaseData extends UserData {
 export interface Request extends OldRequest {
     auth: boolean;
     user?: UsersDatabaseData;
+    typeOfToken?: string;
 }
 
 export interface Context extends OldContext {
     request: Request;
+}
+
+
+export interface TokensInterface {
+    ID: string;
+    Token: string;
+    Deleted: boolean;
+}
+
+export interface TokenPayloadInterface {
+    ID: string;
+    exp: number;
+    iat: number;
+    iss: string;
+    aud: string;
+}
+
+export interface UpdateAppUserData {
+    DisplayUsername: string;
+    Private: boolean;
+    AvatarURL: string;
 }

@@ -7,6 +7,7 @@ router
   .get("/api/v1", APIV1Controller.index)
   .get("/api/v1/mod/:id", APIV1Controller.getMod)
   .get("/api/v1/user/@me", APIV1Controller.getMyUser)
+  .patch("/api/v1/user/@me", APIV1Controller.updateUser)
   .get("/api/v1/user/:id", APIV1Controller.getUser)
 
 export default router;

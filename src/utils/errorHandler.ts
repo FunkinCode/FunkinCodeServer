@@ -6,6 +6,7 @@ export default async (ctx: Context, next: Next) => {
     try {
         await next();
     } catch (err) {
+        console.log(err)
         if (isHttpError(err)) {
             ctx.response.status = err.status;
         } else {

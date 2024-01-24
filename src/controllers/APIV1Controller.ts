@@ -1,4 +1,4 @@
-import { getPublicUser } from "../database/db.ts"
+import { getPublicUser, UpdateUserInApp } from "../database/db.ts"
 import { APIErrors } from "../utils/errorsCodes.ts"
 import { Context } from "https://deno.land/x/oak@v12.6.2/context.ts";
 import { RouterContext } from "https://deno.land/x/oak@v12.6.2/mod.ts";
@@ -123,6 +123,49 @@ export default {
             }
 
             return;
+        }
+
+        switch ((ctx.request as Request).typeOfToken) {
+            case ("funkincodeAPP"): {
+                const newData = ctx.request.body({
+                    type: "json"
+                });
+
+                const { DisplayUsername, Private, AvatarURL } = await newData.value;
+
+                if (!DisplayUsername || typeof Private !== "boolean" || !AvatarURL) {
+                    ctx.response.status = 400;
+                    ctx.response.body = {
+                        message: "No estan todos los datos necesarios para editar",
+                        errorCode: APIErrors.invalidJsonUserUpdate
+                    }
+
+                    return;
+                }
+
+                if (await UpdateUserInApp(user.ID, {
+                    DisplayUsername,
+                    Private,
+                    AvatarURL
+                })) {
+                    ctx.response.status = 200;
+                    ctx.response.body = {
+                        message: "Se a logrado editar exitosamente el usuario.",
+                    }
+
+                    return;
+                }
+
+                ctx.response.status = 500;
+                ctx.response.body = {
+                    message: "A habido un error al editar los datos del usuario",
+                    errorCode: APIErrors.errorToUpdateUser
+                }
+
+                return;
+
+
+            }
         }
 
     }

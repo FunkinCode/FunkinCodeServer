@@ -4,7 +4,7 @@ await envData()
 
 // Import the latest major version of the MongoDB driver
 import { MongoClient } from "npm:mongodb@6";
-import { DiscordUserData, UserData, UsersDatabaseData } from "../utils/interfaces.ts"
+import { DiscordUserData, UserData, UsersDatabaseData, TokensInterface, TokenPayloadInterface, UpdateAppUserData } from "../utils/interfaces.ts"
 import Snowflake from "https://deno.land/x/snowflake@v1/mod.ts";
 import * as jose from 'https://deno.land/x/jose@v5.2.0/index.ts'
 
@@ -23,15 +23,7 @@ const secret = new TextEncoder().encode(
 )
 const alg = 'HS256'
 
-
-
 const users = db.collection<UsersDatabaseData>("users");
-
-interface TokensInterface {
-    ID: string;
-    Token: string;
-    Deleted: boolean;
-}
 
 const tokens = db.collection<TokensInterface>("token")
 
@@ -107,18 +99,36 @@ export async function getPublicUser(ID: string): Promise<UserData | null>  {
     }
 }
 
-export async function verifyToken(Token: string): Promise<boolean>{
-    const payload = (await jose.jwtVerify(Token, secret))?.payload as unknown as TokensInterface;
-    if(!payload) return false;
-    if(payload.Deleted) return false;
+interface verifyToken {
+    exist: boolean;
+    type?: string;
+}
+
+export async function verifyToken(Token: string): Promise<verifyToken>{
+    const tokenInfo = await tokens.findOne({Token: Token});
+    if(!tokenInfo) return {
+        exist: false
+    };
+    if(tokenInfo.Deleted) return {
+        exist: false
+    };
+    const payload = (await jose.jwtVerify(Token, secret))?.payload as unknown as TokenPayloadInterface;
+    if(!payload) return {
+        exist: false
+    };
     const user = await users.findOne({ ID: payload.ID });
-    if(!user) return false;
-    return true;
+    if(!user) return {
+        exist: false
+    };
+    return {
+        exist: true,
+        type: payload.aud
+    };
 }
 
 export async function getMyUser(Token: string): Promise<UsersDatabaseData | null> {
     try {
-        if(!(await verifyToken(Token))) return null;
+        if(!(await verifyToken(Token)).exist) return null;
         const payload = (await jose.jwtVerify(Token, secret))?.payload as unknown as TokensInterface;
         if(!payload) return null;
         const user = await users.findOne({ ID: payload.ID });
@@ -128,5 +138,12 @@ export async function getMyUser(Token: string): Promise<UsersDatabaseData | null
         console.log(_e)
         return null;
     }
+}
+
+export async function UpdateUserInApp(ID: string, data: UpdateAppUserData): Promise<boolean>  {
+    const user = await users.findOne({ ID });
+    if(!user) return false;
+    await users.updateOne({ID}, { $set: {DisplayUsername: data.DisplayUsername, AvatarURL: data.AvatarURL, Private: data.Private}})
+    return true;
 }
 // 
