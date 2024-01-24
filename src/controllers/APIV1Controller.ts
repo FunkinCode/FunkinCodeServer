@@ -1,7 +1,8 @@
-import { getPublicUser, verifyToken, getMyUser } from "../database/db.ts"
+import { getPublicUser } from "../database/db.ts"
 import { APIErrors } from "../utils/errorsCodes.ts"
 import { Context } from "https://deno.land/x/oak@v12.6.2/context.ts";
 import { RouterContext } from "https://deno.land/x/oak@v12.6.2/mod.ts";
+import { Request } from "../utils/interfaces.ts"
 
 export default {
     index(ctx: Context) {
@@ -66,11 +67,9 @@ export default {
         return;
     },
 
-    async getMyUser(ctx: Context) {
-        //Get ID
-        const token = ctx.request.headers.get("Authorization")
+    getMyUser(ctx: Context) {
 
-        if (!token) {
+        if (!(ctx.request as Request).auth) {
             ctx.response.status = 400;
             ctx.response.body = {
                 message: "No haz enviado tu token",
@@ -80,20 +79,7 @@ export default {
             return;
         }
 
-        // Remove bearer of bearer token
-        const tokenWithoutBearer = token.replace("Bearer ", "");
-
-        if (!(await verifyToken(tokenWithoutBearer))) {
-            ctx.response.status = 401;
-            ctx.response.body = {
-                message: "Token invalido",
-                errorCode: APIErrors.invalidToken
-            }
-
-            return;
-        }
-
-        const user = await getMyUser(tokenWithoutBearer);
+        const user = (ctx.request as Request).user;
 
         if (!user) {
             ctx.response.status = 404;
@@ -113,5 +99,31 @@ export default {
         }
 
         return;
+    },
+
+    async updateUser(ctx: Context) {
+
+        if (!(ctx.request as Request).auth) {
+            ctx.response.status = 400;
+            ctx.response.body = {
+                message: "No haz enviado tu token",
+                errorCode: APIErrors.noUserID
+            }
+
+            return;
+        }
+
+        const user = (ctx.request as Request).user;
+
+        if (!user) {
+            ctx.response.status = 404;
+            ctx.response.body = {
+                message: "No existe el usuario",
+                errorCode: APIErrors.userDontExists
+            }
+
+            return;
+        }
+
     }
 };

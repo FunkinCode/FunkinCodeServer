@@ -1,9 +1,12 @@
+import { Context as OldContext } from "https://deno.land/x/oak@v12.6.2/context.ts";
+import { Request as OldRequest } from "https://deno.land/x/oak@v12.6.2/request.ts";
 export interface DiscordUserData {
     discordId: string;
     username: string;
-    discriminator: string;
-    avatar: string | null;
-    email: string | null;
+    displayname?: string;
+    discriminator?: string;
+    avatar?: string;
+    email?: string;
     verified: boolean
     locale: string;
     flags: number;
@@ -18,4 +21,22 @@ export interface UserData {
     AvatarURL: string | undefined;
     Flags: number;
     CreatedAt: Date;
+}
+
+export interface UsersDatabaseData extends UserData {
+    _id?: string;
+    Email: string | undefined;
+    DiscordID: string | undefined;
+    GithubID: string | undefined;
+    LastUpdated: Date;
+    Private: boolean;
+}
+
+export interface Request extends OldRequest {
+    auth: boolean;
+    user?: UsersDatabaseData;
+}
+
+export interface Context extends OldContext {
+    request: Request;
 }

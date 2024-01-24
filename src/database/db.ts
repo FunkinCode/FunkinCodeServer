@@ -4,7 +4,7 @@ await envData()
 
 // Import the latest major version of the MongoDB driver
 import { MongoClient } from "npm:mongodb@6";
-import { DiscordUserData, UserData } from "../utils/interfaces.ts"
+import { DiscordUserData, UserData, UsersDatabaseData } from "../utils/interfaces.ts"
 import Snowflake from "https://deno.land/x/snowflake@v1/mod.ts";
 import * as jose from 'https://deno.land/x/jose@v5.2.0/index.ts'
 
@@ -23,22 +23,9 @@ const secret = new TextEncoder().encode(
 )
 const alg = 'HS256'
 
-interface UsersInterface {
-    _id?: string;
-    ID: string;
-    Username: string;
-    Email: string | undefined;
-    DisplayUsername: string | undefined;
-    AvatarURL: string | undefined;
-    DiscordID: string | undefined;
-    GithubID: string | undefined;
-    Flags: number;
-    CreatedAt: Date;
-    LastUpdated: Date;
-    Private: boolean;
-}
 
-const users = db.collection<UsersInterface>("users");
+
+const users = db.collection<UsersDatabaseData>("users");
 
 interface TokensInterface {
     ID: string;
@@ -67,7 +54,7 @@ export async function signInOrSignUpDiscord(DiscordUserData: DiscordUserData): P
                     ID: snowflake.generate(),
                     Username: DiscordUserData.username,
                     Email: DiscordUserData.email || undefined,
-                    DisplayUsername: DiscordUserData.username,
+                    DisplayUsername: DiscordUserData.displayname,
                     AvatarURL: DiscordUserData.avatar || undefined,
                     DiscordID: DiscordUserData.discordId,
                     GithubID: "",
@@ -90,7 +77,10 @@ export async function signInOrSignUpDiscord(DiscordUserData: DiscordUserData): P
 async function createToken(ID: string): Promise<string> {
     const jwt = await new jose.SignJWT({ ID })
         .setProtectedHeader({ alg })
-        .setExpirationTime('2h')
+        .setExpirationTime('30d')
+        .setIssuedAt()
+        .setIssuer('funkincodeAPI')
+        .setAudience('funkincodeAPP')
         .sign(secret)
 
     // Upload to tokens 
@@ -126,12 +116,17 @@ export async function verifyToken(Token: string): Promise<boolean>{
     return true;
 }
 
-export async function getMyUser(Token: string): Promise<UsersInterface | null> {
-    if(!(await verifyToken(Token))) return null;
-    const payload = (await jose.jwtVerify(Token, secret))?.payload as unknown as TokensInterface;
-    if(!payload) return null;
-    const user = await users.findOne({ ID: payload.ID });
-    if(!user) return null;
-    return user;
+export async function getMyUser(Token: string): Promise<UsersDatabaseData | null> {
+    try {
+        if(!(await verifyToken(Token))) return null;
+        const payload = (await jose.jwtVerify(Token, secret))?.payload as unknown as TokensInterface;
+        if(!payload) return null;
+        const user = await users.findOne({ ID: payload.ID });
+        if(!user) return null;
+        return user;
+    } catch (_e) {
+        console.log(_e)
+        return null;
+    }
 }
 // 

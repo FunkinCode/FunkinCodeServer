@@ -73,8 +73,9 @@ export default {
         const user: DiscordUserData = {
             discordId: response2.id,
             username: response2.username,
+            displayname: response2.displayname,
             discriminator: response2.discriminator,
-            avatar: response2.avatar ? `https://cdn.discordapp.com/avatars/${response2.id}/${response2.avatar}.png` : null,
+            avatar: response2.avatar ? `https://cdn.discordapp.com/avatars/${response2.id}/${response2.avatar}.png` : undefined,
             email: response2.email,
             verified: response2.verified,
             locale: response2.locale,
