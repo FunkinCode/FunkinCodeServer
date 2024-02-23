@@ -4,7 +4,7 @@ await envData()
 
 // Import the latest major version of the MongoDB driver
 import { MongoClient } from "npm:mongodb@6";
-import { DiscordUserData, UserData, UsersDatabaseData, TokensInterface, TokenPayloadInterface, UpdateAppUserData } from "../utils/interfaces.ts"
+import { DiscordUserData, UserData, UsersDatabaseData, TokensInterface, TokenPayloadInterface, UpdateAppUserData, BaseMod, Mod } from "../utils/interfaces.ts"
 import Snowflake from "https://deno.land/x/snowflake@v1/mod.ts";
 import * as jose from 'https://deno.land/x/jose@v5.2.0/index.ts'
 
@@ -26,6 +26,8 @@ const alg = 'HS256'
 const users = db.collection<UsersDatabaseData>("users");
 
 const tokens = db.collection<TokensInterface>("token")
+
+const mods = db.collection<Mod>("mods")
 
 // Create a function for sign-in or if the user dont exist, sign-up and return the a token for the user, check if the email exist in the database, in case exist, add discordid to profile, this is for discord oauth
 export async function signInOrSignUpDiscord(DiscordUserData: DiscordUserData): Promise<string | undefined> {
@@ -85,9 +87,9 @@ async function createToken(ID: string): Promise<string> {
     return jwt;
 }
 
-export async function getPublicUser(ID: string): Promise<UserData | null>  {
+export async function getPublicUser(ID: string): Promise<UserData | null> {
     const user = await users.findOne({ ID });
-    if(!user) return null;
+    if (!user) return null;
     // Convert usersinterface to userData
     return {
         ID: user.ID,
@@ -104,20 +106,20 @@ interface verifyToken {
     type?: string;
 }
 
-export async function verifyToken(Token: string): Promise<verifyToken>{
-    const tokenInfo = await tokens.findOne({Token: Token});
-    if(!tokenInfo) return {
+export async function verifyToken(Token: string): Promise<verifyToken> {
+    const tokenInfo = await tokens.findOne({ Token: Token });
+    if (!tokenInfo) return {
         exist: false
     };
-    if(tokenInfo.Deleted) return {
+    if (tokenInfo.Deleted) return {
         exist: false
     };
     const payload = (await jose.jwtVerify(Token, secret))?.payload as unknown as TokenPayloadInterface;
-    if(!payload) return {
+    if (!payload) return {
         exist: false
     };
     const user = await users.findOne({ ID: payload.ID });
-    if(!user) return {
+    if (!user) return {
         exist: false
     };
     return {
@@ -128,11 +130,11 @@ export async function verifyToken(Token: string): Promise<verifyToken>{
 
 export async function getMyUser(Token: string): Promise<UsersDatabaseData | null> {
     try {
-        if(!(await verifyToken(Token)).exist) return null;
+        if (!(await verifyToken(Token)).exist) return null;
         const payload = (await jose.jwtVerify(Token, secret))?.payload as unknown as TokensInterface;
-        if(!payload) return null;
+        if (!payload) return null;
         const user = await users.findOne({ ID: payload.ID });
-        if(!user) return null;
+        if (!user) return null;
         return user;
     } catch (_e) {
         console.log(_e)
@@ -140,10 +142,39 @@ export async function getMyUser(Token: string): Promise<UsersDatabaseData | null
     }
 }
 
-export async function UpdateUserInApp(ID: string, data: UpdateAppUserData): Promise<boolean>  {
+export async function UpdateUserInApp(ID: string, data: UpdateAppUserData): Promise<boolean> {
     const user = await users.findOne({ ID });
-    if(!user) return false;
-    await users.updateOne({ID}, { $set: {DisplayUsername: data.DisplayUsername, AvatarURL: data.AvatarURL, Private: data.Private}})
+    if (!user) return false;
+    await users.updateOne({ ID }, { $set: { DisplayUsername: data.DisplayUsername, AvatarURL: data.AvatarURL, Private: data.Private } })
     return true;
 }
-// 
+
+export async function UploadMod(mod: BaseMod): Promise<boolean> {
+    const newMod: Mod = {
+        ID: snowflake.generate(),
+        ...mod,
+        CreatedAt: new Date(),
+        LastUpdated: new Date(),
+        Deleted: false
+    }
+    await mods.insertOne(newMod);
+    return true;
+}
+
+export async function getMod(ID: string): Promise<Mod | null> {
+    const mod: Mod | null = await mods.findOne({ ID });
+    // Delete property _id
+    if (!mod) return null;
+    delete mod._id;
+    return mod as Mod;
+}
+
+export async function getListMods(limit: number, page: number): Promise<Mod[] | null> {
+    // Limit max 50
+    if (limit > 50) limit = 50;
+    // Get mods from database in ordern by updated date
+    const modsList = await mods.find({}).sort({ LastUpdated: -1 }).limit(limit).skip(limit * (page - 1)).toArray() as Mod[];
+    // Delete property _id
+    modsList.forEach(mod => delete mod._id);
+    return modsList;
+}

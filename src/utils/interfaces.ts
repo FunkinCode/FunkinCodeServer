@@ -42,7 +42,6 @@ export interface Context extends OldContext {
     request: Request;
 }
 
-
 export interface TokensInterface {
     ID: string;
     Token: string;
@@ -61,4 +60,30 @@ export interface UpdateAppUserData {
     DisplayUsername: string;
     Private: boolean;
     AvatarURL: string;
+}
+
+export interface BaseMod {
+    URLDownload?: string;
+    name: string;
+    version: string;
+    tags: string[];
+    flags: number; // usado para aviso de contenido sensible y eso
+    owner: string; // id de usuario u organizacion
+    overrideOwner?: string; // nombre tipo string (por si el w no tiene funkin code)
+    banner: string;
+    imgs: string[];
+    bgInMenu?: string;
+    deltaName: string; // Nombre de carpeta cuando es descomprimida
+    GithubRepo?: string; //Something like mdcyt/gists
+    GithubRepoBranch?: string; //Something like main
+}
+
+export interface Mod extends BaseMod {
+    _id?: string;
+    ID: string;
+    CreatedAt: Date;
+    LastUpdated: Date;
+    Deleted: boolean;
+    Partner?: boolean;
+    PartnerID?: string;
 }
